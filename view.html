@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<!--
+  Copyright © 2026 Navid Semi (navidsemi.com). All rights reserved.
+  view.html — Public-facing viewer for shared UX Audit reports fetched from Supabase.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UX Audit Report</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Design tokens ── */
+    :root {
+      --brand:          #4f46e5;
+      --brand-light:    #eef0fd;
+      --brand-dark:     #3730a3;
+      --text-primary:   #0d1117;
+      --text-secondary: #505973;
+      --text-muted:     #9299b0;
+      --text-checked:   #b8bdd1;
+      --bg-base:        #f4f5f9;
+      --bg-surface:     #ffffff;
+      --border:         #e0e3ef;
+      --border-soft:    #eceef6;
+
+      --sev-critical-text: #dc2626; --sev-critical-bg: #fef2f2;
+      --sev-major-text:    #c2410c; --sev-major-bg:    #fff4ee;
+      --sev-minor-text:    #a16207; --sev-minor-bg:    #fefce8;
+      --sev-info-text:     #1d4ed8; --sev-info-bg:     #eff6ff;
+    }
+
+    /* ── Base ── */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: var(--bg-base);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Loading Overlay ── */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: var(--bg-base);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      transition: opacity 320ms ease;
+    }
+    #loading-overlay.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--brand);
+      border-radius: 50%;
+      animation: spin 700ms linear infinite;
+    }
+    .loading-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 0.1px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error State ── */
+    #error-state {
+      display: none;
+      max-width: 480px;
+      margin: 80px auto 0;
+      padding: 32px 28px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      text-align: center;
+    }
+    #error-state.is-visible { display: block; }
+    .error-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      background: #fef2f2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #dc2626;
+    }
+    .error-icon svg { width: 22px; height: 22px; }
+    .error-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .error-body {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .error-link {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 8px 20px;
+      border-radius: 6px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .error-link:hover { background: var(--brand-dark); }
+
+    /* ── Sticky Toolbar ── */
+    .report-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 54px;
+      padding: 0 24px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+    .toolbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .toolbar-mark { font-size: 17px; color: var(--brand); }
+    .toolbar-right { display: flex; align-items: center; gap: 8px; }
+    .toolbar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: background 140ms ease, border-color 140ms ease;
+      flex-shrink: 0;
+      border: 1px solid transparent;
+    }
+    .toolbar-btn--ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border-color: var(--border);
+    }
+    .toolbar-btn--ghost:hover  { background: var(--bg-base); border-color: #c7cbdf; }
+    .toolbar-btn--ghost:active { opacity: .82; }
+    .toolbar-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    /* ── Page Layout ── */
+    .report-page-body {
+      max-width: 820px;
+      margin: 28px auto 0;
+      padding: 0 20px;
+    }
+
+    /* ── Report Card ── */
+    .report-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    /* ── Header Bar ── */
+    .pdf-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 55%, #818cf8 100%);
+      color: #fff;
+    }
+    .pdf-header-left  { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+    .pdf-header-mark  { font-size: 18px; opacity: .85; }
+    .pdf-header-right { font-size: 11px; opacity: .75; letter-spacing: .3px; }
+
+    /* ── Cover Body ── */
+    .pdf-cover-body { padding: 24px 24px 20px; }
+
+    .pdf-report-h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+    .pdf-meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 11.5px;
+    }
+    .pdf-meta-key {
+      width: 130px;
+      padding: 5px 10px 5px 0;
+      color: var(--text-secondary);
+      font-weight: 600;
+      vertical-align: top;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .pdf-meta-val {
+      padding: 5px 0;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-soft);
+      word-break: break-all;
+    }
+
+    .pdf-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    /* ── Progress Bar ── */
+    .pdf-prog-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 100px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .pdf-prog-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--brand), #818cf8);
+      border-radius: 100px;
+      min-width: 2px;
+      transition: width 600ms ease;
+    }
+    .pdf-prog-pct { font-size: 10.5px; color: var(--brand); font-weight: 600; }
+
+    /* ── Stat Cards ── */
+    .pdf-stats-grid { display: flex; gap: 8px; margin-top: 6px; }
+    .pdf-stat-card {
+      flex: 1;
+      background: var(--bg-base);
+      border-radius: 8px;
+      padding: 10px 8px 8px;
+      text-align: center;
+    }
+    .pdf-stat-count  { display: block; font-size: 22px; font-weight: 800; line-height: 1.1; }
+    .pdf-stat-label  { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; color: var(--text-secondary); }
+    .pdf-stat-sub    { display: block; font-size: 9px; color: var(--text-muted); margin-top: 1px; }
+
+    /* ── Discovery Section ── */
+    .pdf-dc-section { margin-bottom: 0; }
+    .pdf-dc-body    { padding: 4px 16px 16px; }
+    .pdf-dc-row {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .pdf-dc-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .pdf-dc-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+    .pdf-dc-value {
+      font-size: 11.5px;
+      color: var(--text-primary);
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    /* ── Pillar Section ── */
+    .pdf-pillar-section { padding: 0 0 4px; }
+    .pdf-pillar-hd {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-base);
+      margin-bottom: 2px;
+    }
+    .pdf-pillar-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .pdf-pillar-title-wrap { flex: 1; min-width: 0; }
+    .pdf-pillar-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+    }
+    .pdf-pillar-stat { display: block; font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .pdf-pillar-bar-wrap { display: flex; align-items: center; gap: 6px; min-width: 80px; }
+    .pdf-pillar-bar-track { flex: 1; height: 5px; background: var(--border); border-radius: 100px; overflow: hidden; }
+    .pdf-pillar-bar-fill  { height: 100%; border-radius: 100px; min-width: 2px; }
+    .pdf-pillar-pct { font-size: 9.5px; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+
+    /* ── Item Rows ── */
+    .pdf-items { padding: 0 0 8px; }
+    .pdf-item {
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .pdf-item:last-child { border-bottom: none; }
+    .pdf-item.is-checked { background: var(--bg-base); }
+    .pdf-item-main { display: flex; align-items: flex-start; gap: 8px; }
+    .pdf-check {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
+      margin-top: 1px;
+      border-radius: 3px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-surface);
+      font-size: 10px;
+      font-weight: 700;
+      color: transparent;
+      flex-shrink: 0;
+    }
+    .pdf-check.is-checked { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .pdf-item-label {
+      flex: 1;
+      font-size: 11.5px;
+      line-height: 1.45;
+      color: var(--text-primary);
+    }
+    .pdf-item.is-checked .pdf-item-label { color: var(--text-checked); }
+    .pdf-badge {
+      flex-shrink: 0;
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 100px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .pdf-item.is-checked .pdf-badge { opacity: .45; }
+    .pdf-item-note {
+      margin: 5px 0 0 24px;
+      padding: 5px 9px;
+      border-left: 3px solid var(--brand);
+      background: var(--bg-base);
+      border-radius: 0 4px 4px 0;
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+    .pdf-screenshot { margin: 6px 0 2px 24px; }
+    .pdf-screenshot img {
+      max-width: 360px;
+      width: 100%;
+      height: auto;
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    /* ── Page Copyright Footer ── */
+    .report-page-footer {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 14px 20px 28px;
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.2px;
+      border-top: 1px solid var(--border);
+    }
+    .report-page-footer a { color: var(--brand); font-weight: 600; }
+    .report-page-footer a:hover { text-decoration: underline; }
+
+    /* ── Print overrides ── */
+    @media print {
+      .report-toolbar  { display: none !important; }
+      #loading-overlay { display: none !important; }
+      body { background: #fff; }
+      .report-page-body { max-width: none; margin: 0; padding: 0; }
+      .report-card { border: none; border-radius: 0; }
+      .report-page-footer { display: none !important; }
+      @page {
+        size: A4 portrait;
+        margin: 16mm 14mm 22mm 14mm;
+        @bottom-center {
+          content: "© 2026 Navid Semi  |  navidsemi.com. All Rights Reserved.";
+          font-size: 7pt;
+          color: #9299b0;
+        }
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Loading overlay (visible by default) ──────────────────────────────── -->
+  <div id="loading-overlay" role="status" aria-live="polite" aria-label="Loading report data">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <span class="loading-text">Loading Report Data…</span>
+  </div>
+
+  <!-- ── Error state (hidden by default) ──────────────────────────────────── -->
+  <div id="error-state" role="alert" aria-live="assertive">
+    <div class="error-icon">
+      <i data-feather="alert-circle" aria-hidden="true"></i>
+    </div>
+    <div class="error-title" id="error-title">Report Not Found</div>
+    <div class="error-body" id="error-body">
+      This report link is invalid or has expired. Make sure you're using the
+      full URL that was shared with you.
+    </div>
+    <a href="https://navidsemi.com" class="error-link">Visit navidsemi.com</a>
+  </div>
+
+  <!-- ── Sticky toolbar ────────────────────────────────────────────────────── -->
+  <div class="report-toolbar" role="toolbar" aria-label="Report actions">
+    <div class="toolbar-brand">
+      <span class="toolbar-mark" aria-hidden="true">◼</span>
+      UX Audit Checklist
+    </div>
+    <div class="toolbar-right">
+      <button id="btn-print" class="toolbar-btn toolbar-btn--ghost" type="button">
+        <i data-feather="printer" aria-hidden="true"></i>
+        Print / Save PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Report content ────────────────────────────────────────────────────── -->
+  <div class="report-page-body" id="report-body-wrap">
+
+    <!-- Cover card: header bar + meta table + progress + stat cards -->
+    <div class="report-card" id="cover-card">
+      <div class="pdf-header-bar">
+        <div class="pdf-header-left">
+          <span class="pdf-header-mark" aria-hidden="true">◼</span>
+          UX Audit Checklist
+        </div>
+        <div class="pdf-header-right">navidsemi.com</div>
+      </div>
+      <div class="pdf-cover-body">
+        <h1 class="pdf-report-h1">UX Audit Report</h1>
+
+        <table class="pdf-meta-table" id="meta-table">
+          <tbody>
+            <!-- Populated by view.js -->
+          </tbody>
+        </table>
+
+        <div class="pdf-section-label">Overall Progress</div>
+        <div class="pdf-prog-track">
+          <div class="pdf-prog-fill" id="prog-fill" style="width:0%"></div>
+        </div>
+        <div class="pdf-prog-pct" id="prog-pct">0% complete</div>
+
+        <div class="pdf-section-label" style="margin-top:20px">Issues by Severity (unchecked items)</div>
+        <div class="pdf-stats-grid" id="stats-grid">
+          <!-- Populated by view.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Discovery & Context card (hidden until hydrated) -->
+    <div class="report-card pdf-dc-section" id="discovery-card" style="display:none">
+      <div class="pdf-pillar-hd" style="border-left:4px solid #495057">
+        <div class="pdf-pillar-icon" style="background:#495057">◉</div>
+        <div class="pdf-pillar-title-wrap">
+          <h2 class="pdf-pillar-name">Discovery &amp; Context</h2>
+          <span class="pdf-pillar-stat">Project setup &amp; research notes</span>
+        </div>
+      </div>
+      <div class="pdf-dc-body" id="discovery-body">
+        <!-- Populated by view.js -->
+      </div>
+    </div>
+
+    <!-- Pillar sections (populated dynamically) -->
+    <div id="pillars-container"></div>
+
+  </div>
+
+  <!-- ── Copyright footer ──────────────────────────────────────────────────── -->
+  <footer class="report-page-footer">
+    © 2026 Navid Semi &nbsp;|&nbsp;
+    <a href="https://navidsemi.com" target="_blank" rel="noopener">navidsemi.com</a>.
+    All Rights Reserved.
+  </footer>
+
+  <!-- Feather Icons CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
+  <!-- Report hydration logic -->
+  <script src="view.js"></script>
+
+</body>
+</html>
