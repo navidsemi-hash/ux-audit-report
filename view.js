@@ -159,7 +159,7 @@ function showError(title, body) {
   const b = document.getElementById('error-body');
   if (t) t.textContent = title;
   if (b) b.textContent = body;
-  // Also hide the main report chrome since we have nothing to show
+  
   const toolbar = document.querySelector('.report-toolbar');
   const wrap    = document.getElementById('report-body-wrap');
   if (toolbar) toolbar.style.display = 'none';
@@ -193,7 +193,7 @@ function hydrateDiscovery(discovery) {
   if (!discovery || typeof discovery !== 'object') return;
 
   const fields = [
-    { label: 'Who are the primary users?',           value: discovery.users      },
+    { label: 'Who are the primary users?',           value: discovery.users    },
     { label: 'What are the main use cases?',          value: discovery.usecases   },
     { label: 'What business goals does this serve?',  value: discovery.goals      },
     { label: 'What are common user complaints?',      value: discovery.complaints },
@@ -274,19 +274,18 @@ function buildPillarSection(pillar, checked, notes, screenshots) {
 // ─── 9. Full Page Hydration ───────────────────────────────────────────────────
 
 function hydrateReport(row) {
-  const checklist   = row.checklist   || {};
+  const checklist   = row.audit_progress   || {};
   const checked     = checklist.checked     || {};
   const notes       = checklist.notes       || {};
-  const screenshots = checklist.screenshots || {};
-  const discovery   = row.discovery || {};
+  const screenshots = row.screenshot_data   || {};
+  const discovery   = row.context_data      || {};
 
   // ── Meta table ──
   const tbody = document.querySelector('#meta-table tbody');
   if (tbody) {
     const rows = [];
-    if (row.project_name) rows.push(buildMetaRow('Project Name', row.project_name));
-    if (row.auditor)      rows.push(buildMetaRow('Auditor',      row.auditor));
-    if (row.page_url)     rows.push(buildMetaRow('Audited Page', row.page_url));
+    if (row.page_name)    rows.push(buildMetaRow('Project Name', row.page_name));
+    if (row.auditor_name) rows.push(buildMetaRow('Auditor',      row.auditor_name));
 
     const date = row.created_at
       ? new Date(row.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
