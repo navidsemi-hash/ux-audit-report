@@ -5,8 +5,8 @@
 
 // ─── 1. Supabase Config ───────────────────────────────────────────────────────
 
-const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL_HERE';
-const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+const SUPABASE_URL = 'https://ezoseqwigkedgmoqbhrz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6b3NlcXdpZ2tlZGdtb3FiaHJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NjQzNzMsImV4cCI6MjA5NzA0MDM3M30.NTqs9Yj3GTct5ab_ZoZLwZeGrt04Tysm_yFzCt3dOoQ';
 
 // ─── 2. Design Constants ─────────────────────────────────────────────────────
 
