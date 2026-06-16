@@ -1,14 +1,9 @@
 <!DOCTYPE html>
-<!--
-  Copyright © 2026 Navid Semi (navidsemi.com). All rights reserved.
-  report.html — Standalone UX Audit report viewer, PDF export hub & share interface.
--->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UX Audit Report</title>
-  <!-- Feather Icons — synchronous load before deferred module -->
   <script src="vendor/feather.min.js"></script>
   <style>
     /* ─── Design Tokens ── */
@@ -45,21 +40,12 @@
 
     /* ─── Dark-mode overrides — screen only (print/PDF stays light always) ──── */
     @media screen {
-
-      /* Broad fallback: catches .report-card / .metric-box if they appear outside
-         #report-content, plus any .pdf-stat-card that slips the specific selector.
-         NOTE: .pdf-header-bar is intentionally absent — gradient strip with #fff
-         text must remain untouched in both light and dark mode.                 */
       .dark-theme .report-card,
       .dark-theme .metric-box,
       .dark-theme .pdf-stat-card {
         background: var(--bg-surface) !important;
         color:      var(--text-primary) !important;
       }
-
-      /* ── Specific PDF overrides — these use ID+class specificity and !important
-            to beat the hardcoded hex values injected by getReportStyles() at
-            runtime inside #report-content.                                      */
 
       .dark-theme #report-content .pdf-report {
         color:      var(--text-primary) !important;
@@ -108,7 +94,7 @@
       .dark-theme #report-content .pdf-dc-label { color:               var(--text-muted)   !important; }
       .dark-theme #report-content .pdf-dc-value { color:               var(--text-primary) !important; }
 
-      /* Trailing copyright footer inside report (hidden on screen, shown in PDF via jsPDF) */
+      /* Trailing copyright footer inside report */
       .dark-theme #report-content .pdf-report-footer {
         color:            var(--text-muted) !important;
         border-top-color: var(--border)     !important;
@@ -129,8 +115,7 @@
       .dark-theme #report-content .pdf-annotation-note { color:        var(--text-primary) !important; }
       .dark-theme #report-content .pdf-annotation-meta { color:        var(--text-muted)   !important; }
       .dark-theme #report-content .pdf-annotation-img  { border-color: var(--border)       !important; }
-
-    } /* end @media screen */
+    }
   </style>
   <style>
     /* ── Reset ── */
@@ -185,7 +170,7 @@
       overflow-x: auto;
     }
 
-    /* Primary / ghost action buttons */
+    /* Action buttons */
     .toolbar-btn {
       display: inline-flex;
       align-items: center;
@@ -214,7 +199,6 @@
     .toolbar-btn--ghost:active { opacity: .82; }
     .toolbar-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
 
-    /* Divider between main actions and share buttons */
     .toolbar-divider {
       width: 1px;
       height: 26px;
@@ -277,8 +261,6 @@
       overflow: hidden;
     }
 
-    /* Suppress the inline trailing copyright inside report content —
-       the page footer below handles it */
     #report-content .pdf-report-footer { display: none !important; }
 
     /* ── Loading Placeholder ── */
@@ -316,9 +298,7 @@
     }
 
     /* ── Premium Blur Gate ── */
-    #premium-blurred-report-zone {
-      position: relative;
-    }
+    #premium-blurred-report-zone { position: relative; }
     #premium-blurred-report-zone.gated {
       filter: blur(8px);
       pointer-events: auto;
@@ -391,12 +371,7 @@
       transition: background 200ms, color 200ms;
     }
     .rpw-step.is-active { background: var(--brand); color: #fff; }
-    .rpw-step-line {
-      flex: 1;
-      height: 2px;
-      background: var(--border);
-      border-radius: 2px;
-    }
+    .rpw-step-line { flex: 1; height: 2px; background: var(--border); border-radius: 2px; }
 
     .rpw-icon-wrap {
       width: 38px;
@@ -412,18 +387,8 @@
     .rpw-icon-wrap.rpw-icon-premium { background: #fef9c3; color: #ca8a04; }
     .dark-theme .rpw-icon-wrap.rpw-icon-premium { background: #2d2004; color: #facc15; }
 
-    .rpw-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-    }
-    .rpw-desc {
-      font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      margin-bottom: 12px;
-    }
+    .rpw-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .rpw-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px; }
 
     .rpw-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 11px; }
     .rpw-label { font-size: 10px; font-weight: 600; color: var(--text-secondary); letter-spacing: .3px; text-transform: uppercase; }
@@ -440,12 +405,7 @@
       transition: border-color 120ms;
     }
     .rpw-input:focus { border-color: var(--brand); background: var(--bg-surface); }
-    .rpw-error {
-      font-size: 10.5px;
-      color: #dc2626;
-      min-height: 16px;
-      margin-bottom: 2px;
-    }
+    .rpw-error { font-size: 10.5px; color: #dc2626; min-height: 16px; margin-bottom: 2px; }
 
     .rpw-btn-primary {
       width: 100%;
@@ -509,26 +469,13 @@
     .rpw-plan-price { font-size: 15px; font-weight: 800; color: #fff; line-height: 1.1; }
     .rpw-plan-period { font-size: 10px; font-weight: 500; color: #c7d2fe; }
 
-    .rpw-features {
-      list-style: none;
-      margin-bottom: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .rpw-features li {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
+    .rpw-features { list-style: none; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .rpw-features li { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text-secondary); }
     .rpw-features li svg { width: 12px; height: 12px; color: var(--brand); flex-shrink: 0; }
   </style>
 </head>
 <body>
 
-  <!-- ── Sticky toolbar ──────────────────────────────────────────────────── -->
   <div class="report-toolbar" role="toolbar" aria-label="Report actions">
 
     <div class="toolbar-brand">
@@ -551,14 +498,12 @@
       <div class="report-share-toolbar" role="group" aria-label="Share report">
         <span class="share-label">Share Report:</span>
 
-        <!-- WhatsApp -->
         <button id="share-wa" class="share-btn" type="button" title="Share on WhatsApp">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
           </svg>
         </button>
 
-        <!-- Telegram -->
         <button id="share-tg" class="share-btn" type="button" title="Share on Telegram">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -566,14 +511,12 @@
           </svg>
         </button>
 
-        <!-- X (Twitter) — filled path logo -->
         <button id="share-x" class="share-btn" type="button" title="Share on X (Twitter)">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
           </svg>
         </button>
 
-        <!-- Gmail / Email -->
         <button id="share-gmail" class="share-btn" type="button" title="Share via Gmail">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
@@ -581,7 +524,6 @@
           </svg>
         </button>
 
-        <!-- Copy Link -->
         <button id="share-link" class="share-btn" type="button" title="Copy Report Link">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
@@ -593,29 +535,24 @@
 
   </div>
 
-  <!-- ── Report content ──────────────────────────────────────────────────── -->
   <div class="report-page-body">
     <div id="report-content">
       <div class="report-loading">Loading report…</div>
     </div>
   </div>
 
-  <!-- ── Copyright footer ────────────────────────────────────────────────── -->
   <footer class="report-page-footer">
-    © 2026 Navid Semi &nbsp;|&nbsp;
+    © 2026 Navid Semi &nbsp;|&nbsp; 
     <a href="https://navidsemi.com" target="_blank" rel="noopener">navidsemi.com</a>.
     All Rights Reserved.
   </footer>
 
-  <!-- ── Premium Paywall Modal ─────────────────────────────────────────────── -->
   <div id="report-paywall-modal" class="rpw-overlay" aria-hidden="true"
        role="dialog" aria-modal="true" aria-labelledby="report-paywall-title">
     <div class="rpw-card">
 
-      <!-- Close -->
       <button id="btn-report-paywall-close" class="rpw-close" type="button" aria-label="Close">✕</button>
 
-      <!-- STATE: AUTH — not logged in -->
       <div id="report-paywall-view-auth" hidden>
         <div class="rpw-icon-wrap">
           <i data-feather="user" aria-hidden="true"></i>
@@ -638,7 +575,6 @@
         </button>
       </div>
 
-      <!-- STATE: UPGRADE — logged in, needs premium -->
       <div id="report-paywall-view-upgrade" hidden>
         <div class="rpw-icon-wrap rpw-icon-premium">
           <i data-feather="zap" aria-hidden="true"></i>
@@ -667,8 +603,7 @@
     </div>
   </div>
 
-  <!-- Report initialiser — external module, CSP-safe -->
-  <script src="report.js" type="module"></script>
+  <script src="view.js" type="module"></script>
 
 </body>
 </html>
