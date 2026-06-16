@@ -1,12 +1,11 @@
 // Copyright © 2026 Navid Semi (navidsemi.com). All rights reserved.
-// report.js — Entry point for report.html; CSP-safe external module loader.
+// view.js — Public web entry point for report viewer; completely safe for standard web hosting.
 
 import { initReportPage } from './export-handler.js';
 import { authManager }    from './supabase-client.js';
 
 // ─── Theme Bootstrap ─────────────────────────────────────────────────────────
 // IIFE runs immediately at module evaluation before DOMContentLoaded handlers.
-// Replaces the inline <script> removed for MV3 CSP ('script-src self') compliance.
 (function () {
   try {
     if (localStorage.getItem('ux_audit_theme') === 'dark') {
@@ -24,13 +23,18 @@ const RPW_STATE = Object.freeze({ AUTH: 'auth', UPGRADE: 'upgrade' });
 // Clear the "Loading report…" placeholder as soon as the DOM is ready,
 // then hand off to initReportPage which hydrates the full report content.
 document.addEventListener('DOMContentLoaded', async () => {
-  // Confirm theme from chrome.storage.sync; localStorage anti-flash script handles the
-  // immediate visual state so there is no flash even if this async read takes a moment.
+  // Web-Safe Theme Detection: Uses localStorage fallbacks entirely to avoid Extension environment crashes
   try {
-    const stored = await chrome.storage.sync.get('ux_audit_theme');
-    const theme  = stored['ux_audit_theme'] || localStorage.getItem('ux_audit_theme') || 'light';
-    document.documentElement.classList.toggle('dark-theme', theme === 'dark');
-    document.body.classList.toggle('dark-theme', theme === 'dark');
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+      const stored = await chrome.storage.sync.get('ux_audit_theme');
+      const theme  = stored['ux_audit_theme'] || localStorage.getItem('ux_audit_theme') || 'light';
+      document.documentElement.classList.toggle('dark-theme', theme === 'dark');
+      document.body.classList.toggle('dark-theme', theme === 'dark');
+    } else {
+      const isDark = localStorage.getItem('ux_audit_theme') === 'dark';
+      document.documentElement.classList.toggle('dark-theme', isDark);
+      document.body.classList.toggle('dark-theme', isDark);
+    }
   } catch {
     const isDark = localStorage.getItem('ux_audit_theme') === 'dark';
     document.documentElement.classList.toggle('dark-theme', isDark);
@@ -50,11 +54,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initReportPage({
       isPremium,
       openPaywall: () => {
-        // If not logged in at all, they shouldn't be on this page
-        // (export is auth-gated in the sidepanel) — but handle it defensively.
         showReportPaywall(isLoggedIn ? RPW_STATE.UPGRADE : RPW_STATE.AUTH);
       },
     });
+    
+    // ─── Premium Watermark Eraser Loop ───────────────────────────────────────
+    // If the active profile evaluates to premium, search for the branding element
+    // and wipe it cleanly out of view.
+    if (isPremium) {
+      const watermark = document.getElementById('report-branding-watermark');
+      if (watermark) {
+        watermark.style.display = 'none';
+      }
+    }
   } catch (err) {
     // Surface a readable error instead of a frozen loading screen
     if (contentEl) {
