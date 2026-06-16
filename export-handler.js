@@ -204,21 +204,39 @@ export async function initReportPage({ reportId = null, isPremium = true, openPa
       pillarOpen:  {},
     };
 
+    // Parse performance_metrics top-level column (new records).
+    // Falls back to context_data.perf for old reports that predate the column.
+    let _parsedPerfMetrics = null;
+    try {
+      _parsedPerfMetrics = typeof data.performance_metrics === 'string'
+        ? JSON.parse(data.performance_metrics)
+        : (data.performance_metrics || null);
+    } catch (_) { _parsedPerfMetrics = null; }
+
+    const storedPerf = _parsedPerfMetrics || parsedContext.perf || null;
+    // performance_metrics uses {pageLoad, domReady}; legacy context_data.perf uses {load, domReady}
+    const perfData = storedPerf
+      ? {
+          load:     (storedPerf.pageLoad != null ? storedPerf.pageLoad : storedPerf.load) || null,
+          domReady: storedPerf.domReady || null,
+        }
+      : null;
+
     // Hydrate any plain-text DOM fields the host page exposes
     const pageNameEl    = document.getElementById('pageName');
     const auditorNameEl = document.getElementById('auditorName');
     if (pageNameEl)    pageNameEl.textContent    = pageUrl          || 'No URL recorded';
     if (auditorNameEl) auditorNameEl.textContent = data.auditor_name || 'Anonymous';
 
-    // Hand off to the existing render pipeline (perfData not stored in Supabase)
+    // Hand off to the existing render pipeline with restored perf values
     const meta     = buildMeta(auditState, pillars, pageUrl);
     const filename = buildFilename(pageUrl);
-    const bodyHtml = buildReportBody(meta, auditState, pillars, discovery, reportMeta, null, isPremium);
+    const bodyHtml = buildReportBody(meta, auditState, pillars, discovery, reportMeta, perfData, isPremium);
 
     const contentEl = document.getElementById('report-content');
     if (contentEl) {
       const screenHtml = (!isPremium)
-        ? _buildScreenReportBody(meta, auditState, pillars, discovery, reportMeta, null, isPremium)
+        ? _buildScreenReportBody(meta, auditState, pillars, discovery, reportMeta, perfData, isPremium)
         : bodyHtml;
       contentEl.innerHTML = `<style>${getReportStyles()}</style><div class="pdf-report">${screenHtml}</div>`;
     }
@@ -302,8 +320,8 @@ export async function initReportPage({ reportId = null, isPremium = true, openPa
   // 6. Print
   document.getElementById('btn-print')?.addEventListener('click', () => window.print());
 
-  // 7. Share buttons (pass discovery so publishReport can include context answers)
-  _initReportShare(auditState, pillars, pageUrl, reportMeta, discovery);
+  // 7. Share buttons (pass discovery + perfData so publishReport includes all context)
+  _initReportShare(auditState, pillars, pageUrl, reportMeta, discovery, perfData);
 }
 
 // ─── 3b-i. Screen-only split report body (free top half / gated bottom half) ──
@@ -352,7 +370,7 @@ function _initReportGate(openPaywall) {
 
 // ─── 3c. Supabase Cloud Publisher ────────────────────────────────────────────
 
-async function publishReport(auditState, pillars, pageUrl, discovery, reportMeta) {
+async function publishReport(auditState, pillars, pageUrl, discovery, reportMeta, perfData = null) {
   const allItems  = pillars.flatMap(p => p.items);
   const totalDone = allItems.filter(i => auditState.checked[i.id]).length;
   const counts    = { critical: 0, major: 0, minor: 0 };
@@ -363,6 +381,16 @@ async function publishReport(auditState, pillars, pageUrl, discovery, reportMeta
     }
   }
 
+  let _perfMetrics = null;
+  try {
+    const t         = window.performance.timing;
+    const pageLoad  = t.loadEventEnd                - t.navigationStart;
+    const domReady  = t.domContentLoadedEventEnd    - t.navigationStart;
+    if (pageLoad > 0 || domReady > 0) {
+      _perfMetrics = { pageLoad: pageLoad || null, domReady: domReady || null };
+    }
+  } catch (_) { /* timing API unavailable */ }
+
   const payload = {
     page_name:    pageUrl            || '',
     auditor_name: reportMeta.auditor || '',
@@ -371,13 +399,17 @@ async function publishReport(auditState, pillars, pageUrl, discovery, reportMeta
       discovery:    discovery               || {},
       pillars:      pillars                 || [],
       project_name: reportMeta.projectName  || '',
+      perf: (perfData && (perfData.load || perfData.domReady))
+        ? { load: perfData.load || null, domReady: perfData.domReady || null }
+        : null,
     },
     audit_progress: {
       checked:     auditState.checked     || {},
       notes:       auditState.notes       || {},
       annotations: auditState.annotations || [],
     },
-    screenshot_data: auditState.screenshots || {},
+    screenshot_data:    auditState.screenshots || {},
+    performance_metrics: _perfMetrics,
   };
 
   const endpoint = `${SUPABASE_URL}/rest/v1/ux_reports`;
@@ -406,7 +438,7 @@ async function publishReport(auditState, pillars, pageUrl, discovery, reportMeta
 
 // ─── 3d. Report Share Button Wiring ──────────────────────────────────────────
 
-function _initReportShare(auditState, pillars, pageUrl, reportMeta, discovery) {
+function _initReportShare(auditState, pillars, pageUrl, reportMeta, discovery, perfData = null) {
   function buildSummary(publicUrl) {
     const allItems  = pillars.flatMap(p => p.items);
     const totalDone = allItems.filter(i => auditState.checked[i.id]).length;
@@ -442,7 +474,7 @@ function _initReportShare(auditState, pillars, pageUrl, reportMeta, discovery) {
 
     let publicUrl = null;
     try {
-      publicUrl = await publishReport(auditState, pillars, pageUrl, discovery, reportMeta);
+      publicUrl = await publishReport(auditState, pillars, pageUrl, discovery, reportMeta, perfData);
     } catch (err) {
       console.warn('[UX Audit Share] Publish failed, sharing without public URL:', err.message);
     } finally {
@@ -509,7 +541,7 @@ function _initReportShare(auditState, pillars, pageUrl, reportMeta, discovery) {
 
       let publicUrl = null;
       try {
-        publicUrl = await publishReport(auditState, pillars, pageUrl, discovery, reportMeta);
+        publicUrl = await publishReport(auditState, pillars, pageUrl, discovery, reportMeta, perfData);
       } catch (err) {
         console.warn('[UX Audit Share] Publish failed, copying page URL:', err.message);
       }
