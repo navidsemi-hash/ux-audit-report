@@ -127,10 +127,126 @@ async function generateReport(auditState, pillars, pageUrl, discovery, reportMet
   toast('Report opened — press Ctrl+P → Save as PDF.');
 }
 
-// ─── 3b. Report Page Initialiser (called from report.html) ───────────────────
+// ─── 3a-i. Supabase Report Fetcher ───────────────────────────────────────────
 
-export async function initReportPage({ isPremium = true, openPaywall = null } = {}) {
-  // 1. Hydrate from storage snapshot
+async function fetchReportFromSupabase(reportId) {
+  const endpoint = `${SUPABASE_URL}/rest/v1/ux_reports?id=eq.${encodeURIComponent(reportId)}&select=*&limit=1`;
+  const res = await fetch(endpoint, {
+    headers: {
+      'apikey':        SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+    },
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Supabase ${res.status}: ${detail.slice(0, 120) || res.statusText}`);
+  }
+  const rows = await res.json();
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error('Report not found.');
+  return rows[0];
+}
+
+// ─── 3b. Report Page Initialiser (called from report.html / view.html) ───────
+
+export async function initReportPage({ reportId = null, isPremium = true, openPaywall = null } = {}) {
+
+  // ── Web viewer path: fetch live data from Supabase ──────────────────────────
+  if (reportId) {
+    const data = await fetchReportFromSupabase(reportId);
+
+    // Robustly parse context_data (may arrive as a JSON string from Supabase)
+    let parsedContext = {};
+    try {
+      parsedContext = typeof data.context_data === 'string'
+        ? JSON.parse(data.context_data)
+        : (data.context_data || {});
+    } catch (e) {
+      console.error('Failed to parse context_data:', e);
+      parsedContext = data.context_data || {};
+    }
+
+    // Robustly parse audit_progress
+    let parsedProgress = {};
+    try {
+      parsedProgress = typeof data.audit_progress === 'string'
+        ? JSON.parse(data.audit_progress)
+        : (data.audit_progress || {});
+    } catch (e) {
+      console.error('Failed to parse audit_progress:', e);
+      parsedProgress = data.audit_progress || {};
+    }
+
+    // Robustly parse screenshot_data
+    let parsedScreenshots = {};
+    try {
+      parsedScreenshots = typeof data.screenshot_data === 'string'
+        ? JSON.parse(data.screenshot_data)
+        : (data.screenshot_data || {});
+    } catch (e) {
+      parsedScreenshots = {};
+    }
+
+    // context_data new format: { discovery: {...}, pillars: [...] }
+    // Legacy format: context_data IS the discovery object directly
+    const discovery = (parsedContext.discovery !== undefined)
+      ? parsedContext.discovery
+      : parsedContext;
+    const pillars   = Array.isArray(parsedContext.pillars) ? parsedContext.pillars : [];
+
+    const pageUrl    = data.page_name    || '';
+    const reportMeta = { auditor: data.auditor_name || '', projectName: parsedContext.project_name || '' };
+    const auditState = {
+      checked:     parsedProgress.checked     || {},
+      notes:       parsedProgress.notes       || {},
+      screenshots: parsedScreenshots,
+      annotations: parsedProgress.annotations || [],
+      expanded:    {},
+      pillarOpen:  {},
+    };
+
+    // Hydrate any plain-text DOM fields the host page exposes
+    const pageNameEl    = document.getElementById('pageName');
+    const auditorNameEl = document.getElementById('auditorName');
+    if (pageNameEl)    pageNameEl.textContent    = pageUrl          || 'No URL recorded';
+    if (auditorNameEl) auditorNameEl.textContent = data.auditor_name || 'Anonymous';
+
+    // Hand off to the existing render pipeline (perfData not stored in Supabase)
+    const meta     = buildMeta(auditState, pillars, pageUrl);
+    const filename = buildFilename(pageUrl);
+    const bodyHtml = buildReportBody(meta, auditState, pillars, discovery, reportMeta, null, isPremium);
+
+    const contentEl = document.getElementById('report-content');
+    if (contentEl) {
+      const screenHtml = (!isPremium)
+        ? _buildScreenReportBody(meta, auditState, pillars, discovery, reportMeta, null, isPremium)
+        : bodyHtml;
+      contentEl.innerHTML = `<style>${getReportStyles()}</style><div class="pdf-report">${screenHtml}</div>`;
+    }
+
+    if (window.feather) window.feather.replace();
+
+    if (!isPremium && typeof openPaywall === 'function') {
+      document.getElementById('premium-blurred-report-zone')?.classList.add('gated');
+      _initReportGate(openPaywall);
+      return;
+    }
+
+    document.getElementById('btn-download-pdf')?.addEventListener('click', async () => {
+      try {
+        await ensureHtml2pdf();
+        const wrapper = mountOffscreenDiv(bodyHtml);
+        try { await renderWithHtml2pdf(wrapper, filename); }
+        finally { unmountElement(wrapper); }
+      } catch {
+        window.print();
+      }
+    });
+
+    document.getElementById('btn-print')?.addEventListener('click', () => window.print());
+    return;
+  }
+
+  // ── Extension path: hydrate from chrome.storage.local snapshot ───────────────
   let reportData = {};
   try {
     const r = await chrome.storage.local.get(CURRENT_REPORT_KEY);
@@ -248,12 +364,18 @@ async function publishReport(auditState, pillars, pageUrl, discovery, reportMeta
   }
 
   const payload = {
-    page_name:       pageUrl             || '',
-    auditor_name:    reportMeta.auditor  || '',
-    context_data:    discovery           || {},
+    page_name:    pageUrl            || '',
+    auditor_name: reportMeta.auditor || '',
+    // Bundle discovery, pillars, and project metadata together — no extra schema columns needed
+    context_data: {
+      discovery:    discovery               || {},
+      pillars:      pillars                 || [],
+      project_name: reportMeta.projectName  || '',
+    },
     audit_progress: {
-      checked: auditState.checked || {},
-      notes:   auditState.notes   || {},
+      checked:     auditState.checked     || {},
+      notes:       auditState.notes       || {},
+      annotations: auditState.annotations || [],
     },
     screenshot_data: auditState.screenshots || {},
   };
