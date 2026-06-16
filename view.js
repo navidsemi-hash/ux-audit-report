@@ -1,5 +1,5 @@
 // Copyright © 2026 Navid Semi (navidsemi.com). All rights reserved.
-// view.js — Public web entry point for shared reports. Completely safe for standard web hosting.
+// view.js — Public web entry point for shared links. Parses URL tokens for backend database hydration.
 
 import { initReportPage } from './export-handler.js';
 import { authManager }    from './supabase-client.js';
@@ -20,35 +20,49 @@ const LEMONSQUEEZY_CHECKOUT_URL =
 const RPW_STATE = Object.freeze({ AUTH: 'auth', UPGRADE: 'upgrade' });
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Web-Safe Theme Detection: Uses localStorage entirely to avoid Extension environment crashes
+  // Pure web-safe theme enforcement
   try {
     const isDark = localStorage.getItem('ux_audit_theme') === 'dark';
     document.documentElement.classList.toggle('dark-theme', isDark);
     document.body.classList.toggle('dark-theme', isDark);
   } catch {
-    // Fallback if localStorage is restricted
     document.documentElement.classList.remove('dark-theme');
   }
 
-  // Restore public web auth session
+  // Initialize public auth manager instance
   await authManager.init();
-
   initReportPaywallModal();
 
   const contentEl  = document.getElementById('report-content');
   const isLoggedIn = authManager.isLoggedIn();
   const isPremium  = authManager.isUserPremium();
 
+  // Extract the unique report token string out of the browser address bar
+  const urlParams = new URLSearchParams(window.location.search);
+  const reportId  = urlParams.get('id') || urlParams.get('reportId');
+
+  if (!reportId) {
+    if (contentEl) {
+      contentEl.innerHTML =
+        `<div style="padding:40px 24px;text-align:center;font-family:sans-serif;color:#505973;">
+           <strong style="display:block;margin-bottom:8px;color:#dc2626;">Invalid Link</strong>
+           This shared audit report URL is missing its identification token key.
+         </div>`;
+    }
+    return;
+  }
+
   try {
-    // Hydrate public report data over the web pipeline 
+    // Hydrate the layout view by handing off the specific report database identifier 
     await initReportPage({
+      reportId,
       isPremium,
       openPaywall: () => {
         showReportPaywall(isLoggedIn ? RPW_STATE.UPGRADE : RPW_STATE.AUTH);
       },
     });
     
-    // ─── Premium Watermark Eraser Loop ───────────────────────────────────────
+    // Premium asset brand clearing loop
     if (isPremium) {
       const watermark = document.getElementById('report-branding-watermark');
       if (watermark) {
@@ -59,11 +73,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (contentEl) {
       contentEl.innerHTML =
         `<div style="padding:40px 24px;text-align:center;font-family:sans-serif;color:#505973;">
-           <strong style="display:block;margin-bottom:8px;color:#dc2626;">Report could not be loaded</strong>
-           ${String(err.message || err).slice(0, 200)}
+           <strong style="display:block;margin-bottom:8px;color:#dc2626;">Could not fetch shared report</strong>
+           The data records may have been deleted or the link has expired.
          </div>`;
     }
-    console.error('[UX Audit Shared Report Web Error]', err);
+    console.error('[UX Audit Shared Report Fetch Error]', err);
   }
 });
 
