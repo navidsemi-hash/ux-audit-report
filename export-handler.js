@@ -130,20 +130,24 @@ async function generateReport(auditState, pillars, pageUrl, discovery, reportMet
 // ─── 3a-i. Supabase Report Fetcher ───────────────────────────────────────────
 
 async function fetchReportFromSupabase(reportId) {
-  const endpoint = `${SUPABASE_URL}/rest/v1/ux_reports?id=eq.${encodeURIComponent(reportId)}&select=*&limit=1`;
+  const endpoint = `${SUPABASE_URL}/rest/v1/rpc/get_report_by_id`;
   const res = await fetch(endpoint, {
+    method:  'POST',
     headers: {
       'apikey':        SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type':  'application/json',
     },
+    body: JSON.stringify({ report_id: reportId }),
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
     throw new Error(`Supabase ${res.status}: ${detail.slice(0, 120) || res.statusText}`);
   }
   const rows = await res.json();
-  if (!Array.isArray(rows) || rows.length === 0) throw new Error('Report not found.');
-  return rows[0];
+  // RPC returns a single row object (or null) rather than an array
+  if (!rows) throw new Error('Report not found.');
+  return rows;
 }
 
 // ─── 3b. Report Page Initialiser (called from report.html / view.html) ───────
