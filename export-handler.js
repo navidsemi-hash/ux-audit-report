@@ -145,9 +145,8 @@ async function fetchReportFromSupabase(reportId) {
     throw new Error(`Supabase ${res.status}: ${detail.slice(0, 120) || res.statusText}`);
   }
   const rows = await res.json();
-  // RPC returns a single row object (or null) rather than an array
-  if (!rows) throw new Error('Report not found.');
-  return rows;
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error('Report not found.');
+  return rows[0];
 }
 
 // ─── 3b. Report Page Initialiser (called from report.html / view.html) ───────
@@ -157,7 +156,6 @@ export async function initReportPage({ reportId = null, isPremium = true, openPa
   // ── Web viewer path: fetch live data from Supabase ──────────────────────────
   if (reportId) {
     const data = await fetchReportFromSupabase(reportId);
-    alert('typeof data.context_data: ' + typeof data.context_data + ', raw value (first 300 chars): ' + JSON.stringify(data.context_data).slice(0, 300));
 
     // Robustly parse context_data (may arrive as a JSON string from Supabase)
     let parsedContext = {};
@@ -169,8 +167,6 @@ export async function initReportPage({ reportId = null, isPremium = true, openPa
       console.error('Failed to parse context_data:', e);
       parsedContext = data.context_data || {};
     }
-    alert('parsedContext.pillars type: ' + typeof parsedContext.pillars + ', isArray: ' + Array.isArray(parsedContext.pillars) + ', length: ' + (parsedContext.pillars ? parsedContext.pillars.length : 'n/a'));
-
     // Robustly parse audit_progress
     let parsedProgress = {};
     try {
@@ -757,7 +753,6 @@ function buildFilename(pageUrl) {
 // ─── 8. HTML Builder — Full Report Body ──────────────────────────────────────
 
 function buildReportBody(meta, auditState, pillars, discovery, reportMeta, perfData, isPremium = false) {
-  alert('pillars count: ' + (pillars ? pillars.length : 'pillars is ' + pillars));
   const dcHtml   = buildDiscoverySection(discovery || {});
   const annotHtml = buildAnnotationsSection(auditState.annotations || []);
   const withDc   = dcHtml.trim().length > 0;
