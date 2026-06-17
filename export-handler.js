@@ -437,7 +437,7 @@ async function publishReport(auditState, pillars, pageUrl, discovery, reportMeta
   const id   = rows?.[0]?.id;
   if (!id) throw new Error('Supabase returned no row ID.');
 
-  return `${REPORT_VIEW_BASE}?id=${id}`;
+  return `${REPORT_VIEW_BASE}view.html?id=${id}`;
 }
 
 // ─── 3d. Report Share Button Wiring ──────────────────────────────────────────
@@ -755,6 +755,7 @@ function buildFilename(pageUrl) {
 // ─── 8. HTML Builder — Full Report Body ──────────────────────────────────────
 
 function buildReportBody(meta, auditState, pillars, discovery, reportMeta, perfData, isPremium = false) {
+  alert('pillars count: ' + (pillars ? pillars.length : 'pillars is ' + pillars));
   const dcHtml   = buildDiscoverySection(discovery || {});
   const annotHtml = buildAnnotationsSection(auditState.annotations || []);
   const withDc   = dcHtml.trim().length > 0;
