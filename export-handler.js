@@ -157,6 +157,7 @@ export async function initReportPage({ reportId = null, isPremium = true, openPa
   // ── Web viewer path: fetch live data from Supabase ──────────────────────────
   if (reportId) {
     const data = await fetchReportFromSupabase(reportId);
+    alert('typeof data.context_data: ' + typeof data.context_data + ', raw value (first 300 chars): ' + JSON.stringify(data.context_data).slice(0, 300));
 
     // Robustly parse context_data (may arrive as a JSON string from Supabase)
     let parsedContext = {};
