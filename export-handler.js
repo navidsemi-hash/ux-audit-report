@@ -168,6 +168,7 @@ export async function initReportPage({ reportId = null, isPremium = true, openPa
       console.error('Failed to parse context_data:', e);
       parsedContext = data.context_data || {};
     }
+    alert('parsedContext.pillars type: ' + typeof parsedContext.pillars + ', isArray: ' + Array.isArray(parsedContext.pillars) + ', length: ' + (parsedContext.pillars ? parsedContext.pillars.length : 'n/a'));
 
     // Robustly parse audit_progress
     let parsedProgress = {};
