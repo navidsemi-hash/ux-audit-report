@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — UX Audit Checklist</title>
+  <style>
+    :root {
+      --bg-base:        #f4f5f9;
+      --bg-surface:     #ffffff;
+      --text-primary:   #0d1117;
+      --text-secondary: #505973;
+      --text-muted:     #9299b0;
+      --border:         #e0e3ef;
+      --brand:          #4f46e5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg-base);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+    .policy-page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+    .updated {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0 0 36px;
+    }
+    h2 {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 32px 0 10px;
+      color: var(--text-primary);
+    }
+    p {
+      font-size: 14.5px;
+      color: var(--text-secondary);
+      margin: 0 0 14px;
+    }
+    ul {
+      margin: 0 0 14px;
+      padding-left: 20px;
+    }
+    li {
+      font-size: 14.5px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    a {
+      color: var(--brand);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 32px;
+    }
+    strong { color: var(--text-primary); }
+    .footer-note {
+      margin-top: 40px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="policy-page">
+    <div class="card">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: June 18, 2026</p>
+
+      <p>
+        UX Audit Checklist ("the extension") is built and maintained by
+        Navid Semi. This policy explains what information the extension
+        collects, why it's collected, and how it's used. We collect the
+        minimum data needed to make your account, your audits, and your
+        premium subscription work correctly.
+      </p>
+
+      <h2>Information we collect</h2>
+      <p>The extension collects the following:</p>
+      <ul>
+        <li><strong>Account information.</strong> Your email address and password, used to create and sign in to your account. Passwords are handled by our authentication provider, Supabase, and are never visible to us in plain text.</li>
+        <li><strong>Audit data.</strong> The checklist items you mark complete, written notes, annotations, and screenshots you create while auditing a page. This data is tied to your account so it can sync across your devices.</li>
+        <li><strong>Device identifier.</strong> A randomly generated identifier stored locally in your browser, used solely to enforce the 2-device limit on your account plan. This identifier is not linked to any other personal information beyond your account.</li>
+        <li><strong>Payment and subscription status.</strong> If you purchase a premium plan, our payment processor, Lemon Squeezy, shares your email address and order details with us so we can activate premium features on your account. We do not receive or store your payment card details; these are handled entirely by Lemon Squeezy.</li>
+      </ul>
+
+      <h2>How we use this information</h2>
+      <p>We use the information above only to:</p>
+      <ul>
+        <li>Create and authenticate your account</li>
+        <li>Save and sync your audit progress, notes, and annotations across your devices</li>
+        <li>Enforce the device limit associated with your plan</li>
+        <li>Activate, renew, or remove premium access based on your subscription status</li>
+        <li>Send you account-related emails, such as purchase receipts or renewal reminders</li>
+      </ul>
+      <p>We do not sell your information, and we do not use it for advertising or share it with third parties for marketing purposes.</p>
+
+      <h2>Where your data is stored</h2>
+      <p>
+        Your account and audit data are stored securely using Supabase, a
+        third-party database and authentication provider. Payment
+        processing is handled by Lemon Squeezy. Both providers maintain
+        their own security and privacy practices, and data is transmitted
+        between the extension and these providers over encrypted
+        connections.
+      </p>
+
+      <h2>Sharing audit reports</h2>
+      <p>
+        If you choose to generate a shareable link for an audit report,
+        that report becomes accessible to anyone who has the link. Only
+        the audit content you've created is included; your account
+        password is never part of a shared report.
+      </p>
+
+      <h2>Your choices</h2>
+      <p>
+        You can sign out of the extension at any time, which removes your
+        device's registration from your account. If you'd like your
+        account and associated data deleted entirely, contact us using
+        the details below and we will remove it.
+      </p>
+
+      <h2>Changes to this policy</h2>
+      <p>
+        If this policy changes, the "Last updated" date at the top of
+        this page will be revised to reflect that.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this policy or your data can be sent to
+        <a href="https://navidsemi.com">navidsemi.com</a>.
+      </p>
+    </div>
+    <p class="footer-note">UX Audit Checklist — a product by Navid Semi</p>
+  </div>
+</body>
+</html>
