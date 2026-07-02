@@ -5,151 +5,78 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Privacy Policy — UX Audit Checklist</title>
   <style>
-    :root {
-      --bg-base:        #f4f5f9;
-      --bg-surface:     #ffffff;
-      --text-primary:   #0d1117;
-      --text-secondary: #505973;
-      --text-muted:     #9299b0;
-      --border:         #e0e3ef;
-      --brand:          #4f46e5;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg-base);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      color: var(--text-primary);
-      line-height: 1.6;
-    }
-    .policy-page {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 48px 24px 80px;
-    }
-    h1 {
-      font-size: 26px;
-      font-weight: 700;
-      margin: 0 0 6px;
-    }
-    .updated {
-      color: var(--text-muted);
-      font-size: 13px;
-      margin: 0 0 36px;
-    }
-    h2 {
-      font-size: 17px;
-      font-weight: 700;
-      margin: 32px 0 10px;
-      color: var(--text-primary);
-    }
-    p {
-      font-size: 14.5px;
-      color: var(--text-secondary);
-      margin: 0 0 14px;
-    }
-    ul {
-      margin: 0 0 14px;
-      padding-left: 20px;
-    }
-    li {
-      font-size: 14.5px;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-    }
-    a {
-      color: var(--brand);
-      text-decoration: none;
-    }
-    a:hover { text-decoration: underline; }
-    .card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 28px 32px;
-    }
-    strong { color: var(--text-primary); }
-    .footer-note {
-      margin-top: 40px;
-      font-size: 13px;
-      color: var(--text-muted);
-      text-align: center;
-    }
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 48px auto; padding: 0 24px; color: #1a1a1a; line-height: 1.7; }
+    h1 { font-size: 28px; } h2 { font-size: 18px; margin-top: 36px; }
+    a { color: #4f46e5; }
   </style>
 </head>
 <body>
-  <div class="policy-page">
-    <div class="card">
-      <h1>Privacy Policy</h1>
-      <p class="updated">Last updated: June 18, 2026</p>
 
-      <p>
-        UX Audit Checklist ("the extension") is built and maintained by
-        Navid Semi. This policy explains what information the extension
-        collects, why it's collected, and how it's used. We collect the
-        minimum data needed to make your account, your audits, and your
-        premium subscription work correctly.
-      </p>
+<h1>Privacy Policy</h1>
+<p>Last updated: July 2, 2026</p>
 
-      <h2>Information we collect</h2>
-      <p>The extension collects the following:</p>
-      <ul>
-        <li><strong>Account information.</strong> Your email address and password, used to create and sign in to your account. Passwords are handled by our authentication provider, Supabase, and are never visible to us in plain text.</li>
-        <li><strong>Audit data.</strong> The checklist items you mark complete, written notes, annotations, and screenshots you create while auditing a page. This data is tied to your account so it can sync across your devices.</li>
-        <li><strong>Device identifier.</strong> A randomly generated identifier stored locally in your browser, used solely to enforce the 2-device limit on your account plan. This identifier is not linked to any other personal information beyond your account.</li>
-        <li><strong>Payment and subscription status.</strong> If you purchase a premium plan, our payment processor, Lemon Squeezy, shares your email address and order details with us so we can activate premium features on your account. We do not receive or store your payment card details; these are handled entirely by Lemon Squeezy.</li>
-      </ul>
+<p>UX Audit Checklist ("the extension") is built and maintained by Navid Semi. This policy explains what information the extension collects, why it's collected, and how it's used. We collect the minimum data needed to make your account, your audits, and your premium subscription work correctly.</p>
 
-      <h2>How we use this information</h2>
-      <p>We use the information above only to:</p>
-      <ul>
-        <li>Create and authenticate your account</li>
-        <li>Save and sync your audit progress, notes, and annotations across your devices</li>
-        <li>Enforce the device limit associated with your plan</li>
-        <li>Activate, renew, or remove premium access based on your subscription status</li>
-        <li>Send you account-related emails, such as purchase receipts or renewal reminders</li>
-      </ul>
-      <p>We do not sell your information, and we do not use it for advertising or share it with third parties for marketing purposes.</p>
+<h2>Information we collect</h2>
+<ul>
+  <li><strong>Account information.</strong> Your email address and password, used to create and sign in to your account. Passwords are handled by our authentication provider, Supabase, and are never visible to us in plain text.</li>
+  <li><strong>Audit data.</strong> The checklist items you mark complete, written notes, annotations, and screenshots you create while auditing a page. This data is tied to your account so it can sync across your devices.</li>
+  <li><strong>Device identifier.</strong> A randomly generated identifier stored locally in your browser, used solely to enforce the 2-device limit on your account plan. This identifier is not linked to any other personal information beyond your account.</li>
+  <li><strong>Payment and subscription status.</strong> If you purchase a premium plan, our payment processor, Lemon Squeezy, shares your email address and order details with us so we can activate premium features on your account. We do not receive or store your payment card details; these are handled entirely by Lemon Squeezy.</li>
+  <li><strong>AI provider API key.</strong> If you choose to use the AI-powered auto-scan feature, you supply your own API key (Google Gemini or OpenAI). This key is stored locally in your browser only and is never sent to our servers. When you trigger an AI scan, the extension sends the current page's content directly from your browser to your chosen AI provider's API using your key. We have no access to this data in transit or at rest.</li>
+</ul>
 
-      <h2>Where your data is stored</h2>
-      <p>
-        Your account and audit data are stored securely using Supabase, a
-        third-party database and authentication provider. Payment
-        processing is handled by Lemon Squeezy. Both providers maintain
-        their own security and privacy practices, and data is transmitted
-        between the extension and these providers over encrypted
-        connections.
-      </p>
+<h2>How we use this information</h2>
+<p>We use the information above only to:</p>
+<ul>
+  <li>Create and authenticate your account</li>
+  <li>Save and sync your audit progress, notes, and annotations across your devices</li>
+  <li>Enforce the device limit associated with your plan</li>
+  <li>Activate, renew, or remove premium access based on your subscription status</li>
+  <li>Send you account-related emails, such as email confirmation codes, purchase receipts, or renewal reminders</li>
+</ul>
+<p>We do not sell your information, and we do not use it for advertising or share it with third parties for marketing purposes.</p>
 
-      <h2>Sharing audit reports</h2>
-      <p>
-        If you choose to generate a shareable link for an audit report,
-        that report becomes accessible to anyone who has the link. Only
-        the audit content you've created is included; your account
-        password is never part of a shared report.
-      </p>
+<h2>Where your data is stored</h2>
+<p>Your account and audit data are stored securely using Supabase, a third-party database and authentication provider based in the United States. Payment processing is handled by Lemon Squeezy. Both providers maintain their own security and privacy practices, and all data is transmitted between the extension and these providers over encrypted (HTTPS) connections.</p>
+<p>Your AI provider API key (if used) is stored exclusively in your local browser storage and never leaves your device except to communicate directly with your chosen AI provider.</p>
 
-      <h2>Your choices</h2>
-      <p>
-        You can sign out of the extension at any time, which removes your
-        device's registration from your account. If you'd like your
-        account and associated data deleted entirely, contact us using
-        the details below and we will remove it.
-      </p>
+<h2>Data retention</h2>
+<p>Your account data is retained for as long as your account is active. If you request account deletion, your personal data and audit content will be permanently removed from our systems within 30 days. Payment records may be retained for longer where required by law or by our payment processor's policies.</p>
 
-      <h2>Changes to this policy</h2>
-      <p>
-        If this policy changes, the "Last updated" date at the top of
-        this page will be revised to reflect that.
-      </p>
+<h2>Sharing audit reports</h2>
+<p>If you choose to generate a shareable link for an audit report, that report becomes accessible to anyone who has the link. Only the audit content you've created is included; your account credentials are never part of a shared report.</p>
 
-      <h2>Contact</h2>
-      <p>
-        Questions about this policy or your data can be sent to
-        <a href="https://navidsemi.com">navidsemi.com</a>.
-      </p>
-    </div>
-    <p class="footer-note">UX Audit Checklist — a product by Navid Semi</p>
-  </div>
+<h2>Third-party services</h2>
+<p>The extension interacts with the following third-party services:</p>
+<ul>
+  <li><strong>Supabase</strong> — authentication and database (<a href="https://supabase.com/privacy">privacy policy</a>)</li>
+  <li><strong>Lemon Squeezy</strong> — payment processing (<a href="https://www.lemonsqueezy.com/privacy">privacy policy</a>)</li>
+  <li><strong>Google Gemini / OpenAI</strong> — AI-powered page analysis, used only if you opt in and supply your own API key (<a href="https://policies.google.com/privacy">Google privacy policy</a>, <a href="https://openai.com/privacy">OpenAI privacy policy</a>)</li>
+  <li><strong>Brevo</strong> — transactional email delivery for account confirmation and notifications (<a href="https://www.brevo.com/legal/privacypolicy/">privacy policy</a>)</li>
+</ul>
+
+<h2>Your rights</h2>
+<p>Depending on where you are located, you may have the right to:</p>
+<ul>
+  <li>Access the personal data we hold about you</li>
+  <li>Request correction of inaccurate data</li>
+  <li>Request deletion of your account and associated data</li>
+  <li>Object to or restrict certain uses of your data</li>
+  <li>Request a portable copy of your data</li>
+</ul>
+<p>To exercise any of these rights, contact us at the address below.</p>
+
+<h2>Your choices</h2>
+<p>You can sign out of the extension at any time, which removes your device's registration from your account. If you'd like your account and associated data deleted entirely, contact us and we will remove it within 30 days.</p>
+
+<h2>Changes to this policy</h2>
+<p>If this policy changes, the "Last updated" date at the top of this page will be revised. Continued use of the extension after changes are posted constitutes acceptance of the updated policy.</p>
+
+<h2>Contact</h2>
+<p>Questions about this policy or your data can be sent to: <a href="mailto:navid@navidsemi.com">navid@navidsemi.com</a></p>
+
+<p><em>UX Audit Checklist — a product by Navid Semi</em></p>
+
 </body>
 </html>
