@@ -356,7 +356,7 @@ function _buildScreenReportBody(meta, auditState, pillars, discovery, reportMeta
 function _initReportGate(openPaywall) {
   const gatedIds = [
     'btn-download-pdf', 'btn-print',
-    'share-wa', 'share-tg', 'share-x', 'share-gmail', 'share-link',
+    'share-wa', 'share-tg', 'share-x', 'share-link',
   ];
   for (const id of gatedIds) {
     document.getElementById(id)?.addEventListener('click', e => {
@@ -519,14 +519,6 @@ function _initReportShare(auditState, pillars, pageUrl, reportMeta, discovery, p
         `https://twitter.com/intent/tweet?text=${encodeURIComponent(full.length > 260 ? full.slice(0, 257) + '…' : full)}`,
         '_blank', 'noopener,noreferrer'
       );
-    });
-  });
-
-  // Gmail
-  document.getElementById('share-gmail')?.addEventListener('click', async function() {
-    await withPublishedUrl(this, publicUrl => {
-      window.location.href =
-        `mailto:?subject=${encodeURIComponent('UX Audit Report Summary')}&body=${encodeURIComponent(buildSummary(publicUrl))}`;
     });
   });
 
