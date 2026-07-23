@@ -11,6 +11,9 @@ const _SESSION_KEY = 'ux_auth_session';
 export const authManager = {
   _session: null,
   _ready:   false,
+  _isPremium:               false,
+  _premiumStatusLoadFailed: false,
+  _trialStartedAt:          null,
 
   // ── Restore persisted session from chrome.storage ────────────────────────────
   async init() {
@@ -20,6 +23,7 @@ export const authManager = {
       const stored = await chrome.storage.local.get(_SESSION_KEY);
       if (stored[_SESSION_KEY]?.access_token) {
         this._session = stored[_SESSION_KEY];
+        await this._checkPremiumStatus();
       }
     } catch { /* non-extension context */ }
   },
@@ -33,7 +37,10 @@ export const authManager = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || data.error_description || 'Sign-up failed.');
-    if (data.access_token) await this._persist(data);
+    if (data.access_token) {
+      await this._persist(data);
+      await this._checkPremiumStatus();
+    }
     return data;
   },
 
@@ -54,6 +61,7 @@ export const authManager = {
     } else {
       this._session = data; // memory only — not written to chrome.storage
     }
+    await this._checkPremiumStatus();
     return data;
   },
 
@@ -68,8 +76,11 @@ export const authManager = {
       }).catch(() => {});
     }
 
-    // Null in-memory session immediately
-    this._session = null;
+    // Null in-memory session and premium cache immediately
+    this._session                 = null;
+    this._isPremium                = false;
+    this._premiumStatusLoadFailed  = false;
+    this._trialStartedAt           = null;
 
     // Remove persisted session from extension storage
     try { await chrome.storage.local.remove(_SESSION_KEY); } catch { }
@@ -85,19 +96,54 @@ export const authManager = {
   // ── Accessors ─────────────────────────────────────────────────────────────────
   getUser()       { return this._session?.user ?? null; },
   isLoggedIn()    { return !!this._session?.access_token; },
-  
-  // ── DEVELOPER OVERRIDE STATE ────────────────────────────────────────────────
-  // Change 'testingPremium = true' to elevate yourself to premium mode instantly.
-  // Change 'testingPremium = false' to revert back to a standard free user account.
+
+  // Real gate, ported from the extension's supabase-client.js
+  // hasProToolAccess(): true for actual premium subscribers, true during the
+  // 30-day trial window, and true for grandfathered pre-trial accounts
+  // (trial_started_at IS NULL — the account predates the trial feature).
+  // Replaces a hardcoded 'testingPremium = true' developer override that was
+  // accidentally left in and shipped — every visitor was being treated as
+  // Pro regardless of actual status.
   isUserPremium() {
-    const testingPremium = true; 
-    
-    if (testingPremium) {
-      return true;
+    if (this._premiumStatusLoadFailed) return false;
+    if (this._isPremium) return true;
+    if (this._trialStartedAt === null) return true; // grandfathered pre-trial accounts
+    const trialElapsedMs = Date.now() - new Date(this._trialStartedAt).getTime();
+    return trialElapsedMs < 30 * 24 * 60 * 60 * 1000;
+  },
+
+  // ── Internal: fetch premium status from the profiles table ──────────────────
+  // Same query shape as the extension's _checkPremiumStatus() — only the two
+  // columns this viewer actually needs (is_premium, trial_started_at); this
+  // repo has no trial-countdown UI or customer-portal link to justify
+  // carrying plan_type/expires_at/customer_portal_url too.
+  async _checkPremiumStatus() {
+    const token  = this._session?.access_token;
+    const userId = this._session?.user?.id;
+    if (!token || !userId) { this._isPremium = false; return; }
+    this._premiumStatusLoadFailed = false;
+    try {
+      const res = await fetch(
+        `${_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=is_premium,trial_started_at&limit=1`,
+        { headers: { apikey: _KEY, Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) {
+        // A failed fetch means we don't know ANYTHING about the user's
+        // status — fail closed rather than keep a stale cached value.
+        this._premiumStatusLoadFailed = true;
+        this._isPremium      = false;
+        this._trialStartedAt = null;
+        return;
+      }
+      const rows = await res.json();
+      const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+      this._isPremium       = row?.is_premium === true;
+      this._trialStartedAt  = row?.trial_started_at ?? null;
+    } catch {
+      this._premiumStatusLoadFailed = true;
+      this._isPremium      = false;
+      this._trialStartedAt = null;
     }
-    
-    // Default fallback logic when testingPremium is false
-    return false;
   },
   // ─────────────────────────────────────────────────────────────────────────────
 

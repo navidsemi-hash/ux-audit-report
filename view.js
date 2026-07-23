@@ -15,7 +15,7 @@ import { authManager }    from './supabase-client.js';
 }());
 
 const LEMONSQUEEZY_CHECKOUT_URL =
-  'https://navidsemi.lemonsqueezy.com/checkout/buy/YOUR_VARIANT_ID';
+  'https://navidsemi.lemonsqueezy.com/checkout/buy/4bcace87-55a0-40b7-8388-2ceef27a40c1';
 
 const RPW_STATE = Object.freeze({ AUTH: 'auth', UPGRADE: 'upgrade' });
 
