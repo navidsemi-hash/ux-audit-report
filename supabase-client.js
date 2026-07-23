@@ -8,6 +8,33 @@ const _URL         = 'https://ezoseqwigkedgmoqbhrz.supabase.co';
 const _KEY         = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6b3NlcXdpZ2tlZGdtb3FiaHJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NjQzNzMsImV4cCI6MjA5NzA0MDM3M30.NTqs9Yj3GTct5ab_ZoZLwZeGrt04Tysm_yFzCt3dOoQ';
 const _SESSION_KEY = 'ux_auth_session';
 
+// Session persistence for this file's own context: a plain web page at
+// navidsemi-hash.github.io. chrome.storage is never available there — it's
+// only exposed to an extension's own pages, not to an arbitrary web origin,
+// regardless of whether the extension happens to be installed in the
+// browser. The chrome.storage calls this file used to make were silently
+// throwing and being swallowed on every real page load; this was invisible
+// while isUserPremium() was hardcoded true (nothing depended on the session
+// actually surviving), but once real Pro-gating started depending on
+// isLoggedIn(), it meant a user could sign in successfully and still be
+// gated on the very next reload. localStorage (already used elsewhere in
+// this file for the device token, and the pattern ux-research-report's
+// supabase-client.js uses) is what's actually available here.
+const _localStore = {
+  get(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode / quota */ }
+  },
+  remove(key) {
+    try { localStorage.removeItem(key); } catch { /* private mode / quota */ }
+  },
+};
+
 export const authManager = {
   _session: null,
   _ready:   false,
@@ -15,17 +42,15 @@ export const authManager = {
   _premiumStatusLoadFailed: false,
   _trialStartedAt:          null,
 
-  // ── Restore persisted session from chrome.storage ────────────────────────────
+  // ── Restore persisted session from localStorage ───────────────────────────────
   async init() {
     if (this._ready) return;
     this._ready = true;
-    try {
-      const stored = await chrome.storage.local.get(_SESSION_KEY);
-      if (stored[_SESSION_KEY]?.access_token) {
-        this._session = stored[_SESSION_KEY];
-        await this._checkPremiumStatus();
-      }
-    } catch { /* non-extension context */ }
+    const stored = _localStore.get(_SESSION_KEY);
+    if (stored?.access_token) {
+      this._session = stored;
+      await this._checkPremiumStatus();
+    }
   },
 
   // ── Sign up — creates account and establishes session (if email confirm off) ─
@@ -45,9 +70,9 @@ export const authManager = {
   },
 
   // ── Sign in with email / password ─────────────────────────────────────────────
-  // rememberMe=true (default) persists the session to chrome.storage so it
-  // survives extension restarts. rememberMe=false keeps the session in memory
-  // only — it is lost when the extension panel closes.
+  // rememberMe=true (default) persists the session to localStorage so it
+  // survives a page reload. rememberMe=false keeps the session in memory
+  // only — it is lost as soon as the page reloads or closes.
   async signIn(email, password, { rememberMe = true } = {}) {
     const res  = await fetch(`${_URL}/auth/v1/token?grant_type=password`, {
       method:  'POST',
@@ -59,7 +84,7 @@ export const authManager = {
     if (rememberMe) {
       await this._persist(data);
     } else {
-      this._session = data; // memory only — not written to chrome.storage
+      this._session = data; // memory only — not written to localStorage
     }
     await this._checkPremiumStatus();
     return data;
@@ -82,8 +107,8 @@ export const authManager = {
     this._premiumStatusLoadFailed  = false;
     this._trialStartedAt           = null;
 
-    // Remove persisted session from extension storage
-    try { await chrome.storage.local.remove(_SESSION_KEY); } catch { }
+    // Remove persisted session
+    _localStore.remove(_SESSION_KEY);
 
     // Sweep any Supabase SDK keys that may have landed in localStorage
     try {
@@ -284,7 +309,7 @@ export const authManager = {
   // ── Internal ──────────────────────────────────────────────────────────────────
   async _persist(session) {
     this._session = session;
-    try { await chrome.storage.local.set({ [_SESSION_KEY]: session }); } catch { }
+    _localStore.set(_SESSION_KEY, session);
   },
 };
 
