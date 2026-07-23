@@ -8,6 +8,16 @@ const _URL         = 'https://ezoseqwigkedgmoqbhrz.supabase.co';
 const _KEY         = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6b3NlcXdpZ2tlZGdtb3FiaHJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0NjQzNzMsImV4cCI6MjA5NzA0MDM3M30.NTqs9Yj3GTct5ab_ZoZLwZeGrt04Tysm_yFzCt3dOoQ';
 const _SESSION_KEY = 'ux_auth_session';
 
+// Returns the exp claim (Unix seconds) from a JWT, or null if unreadable.
+// Fallback for _refreshSession() when a stored session predates expires_at
+// being recorded, or the field is otherwise missing.
+function _jwtExp(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' ? payload.exp : null;
+  } catch { return null; }
+}
+
 // Session persistence for this file's own context: a plain web page at
 // navidsemi-hash.github.io. chrome.storage is never available there — it's
 // only exposed to an extension's own pages, not to an arbitrary web origin,
@@ -49,6 +59,11 @@ export const authManager = {
     const stored = _localStore.get(_SESSION_KEY);
     if (stored?.access_token) {
       this._session = stored;
+      // Refresh BEFORE checking premium status — a session that survived
+      // the reload (localStorage fix) can still carry an expired
+      // access_token; _checkPremiumStatus()'s profiles fetch would 401 on a
+      // stale token and fail closed, gating an otherwise-entitled user.
+      await this._refreshSession();
       await this._checkPremiumStatus();
     }
   },
@@ -171,6 +186,38 @@ export const authManager = {
     }
   },
   // ─────────────────────────────────────────────────────────────────────────────
+
+  // ── Internal: refresh the access_token if expired or expiring soon ──────────
+  // Ported from the extension's supabase-client.js — same 5-minute buffer,
+  // same fail-open-on-network-error behavior (an offline visitor shouldn't
+  // be signed out over a transient fetch failure), same clean sign-out if
+  // the refresh token itself is rejected (expired or revoked refresh token
+  // means the session is genuinely over, not just stale).
+  async _refreshSession() {
+    const refreshToken = this._session?.refresh_token;
+    if (!refreshToken) return;
+
+    const expiresAt = this._session?.expires_at ?? _jwtExp(this._session?.access_token);
+    if (expiresAt && (Date.now() / 1000) < expiresAt - 300) return;
+
+    try {
+      const res  = await fetch(`${_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method:  'POST',
+        headers: { apikey: _KEY, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ refresh_token: refreshToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        // Refresh token rejected (expired or revoked) — sign out cleanly so
+        // the UI shows a logged-out state instead of a stale broken session.
+        await this.signOut();
+        return;
+      }
+      await this._persist(data);
+    } catch {
+      // Network error — don't sign out; user may be offline.
+    }
+  },
 
   // ── Multi-device enforcement (max 2 concurrent devices, Google-profile-bound) ──
 
