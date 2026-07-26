@@ -819,7 +819,7 @@ function buildCover({ pageUrl, date, totalItems, totalDone, pct, issuesBySev }, 
   <div class="pdf-header-bar">
     <div class="pdf-header-left">
       <span class="pdf-header-mark">◼</span>
-      <span class="pdf-header-title">UX Audit Checklist</span>
+      <span class="pdf-header-title">UX Audit Report</span>
     </div>
     <div class="pdf-header-right">${isPremium ? '' : '<span id="report-branding-watermark" style="color:rgba(255,255,255,0.7);font-size:12px;">navidsemi.com</span>'}</div>
   </div>
